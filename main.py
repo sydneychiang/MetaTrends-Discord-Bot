@@ -13,6 +13,7 @@ companies = ["Google", "Microsoft", "Discord", "Apple", "Tesla", "Uber", "Facebo
 
 elevatorpitch = ["Metatrends is an api-based content ranking and trend aggregation system.", "Please help us.", "Get your top trending content here!", "I'll intern for free."]
 
+
 def get_date():
   # str = ""
   today = date.today()
@@ -83,8 +84,9 @@ async def on_message(message):
   elif message.content.startswith("$$$get"):
     num = int(message.content.split()[1]) - 1
     lst = get_trending_list()
+    # specificContent = filter_content.format_content(lst[num])
     specificContent = "```ini\n" + filter_content.format_content(lst[num]) + "```"
-    msg = await message.channel.send(specificContent)
+    msg = await message.channel.send(embed=specificContent)
     await msg.add_reaction('🌐')
 
 def calculate_indices(lst, start, end, isForward):
@@ -116,7 +118,7 @@ def update_overview(msg, isForward):
   # print(newstart, newend, len(lst))
   newstr = put_lst_in_backticks(get_trending_overview(), newstart, newend)
   # print(newstr)
-  return newstr
+  return 'The current top trending content:' + newstr
 
 @client.event
 async def on_reaction_remove(reaction, user):
@@ -127,27 +129,12 @@ async def on_reaction_add(reaction, user):
   if (user.name != "MetaTrends Bot"):
     if reaction.emoji == '⬅️' and reaction.message.content.startswith('The current top trending content:'):
       await reaction.message.edit(content=update_overview(reaction.message, False))
+      await reaction.message.remove_reaction(reaction.emoji, user)
     elif reaction.emoji == '➡️' and reaction.message.content.startswith('The current top trending content:'):
       await reaction.message.edit(content=update_overview(reaction.message, True))
+  
+      await reaction.message.remove_reaction(reaction.emoji, user)
 
-
-
-# @client.event
-# async def on_reaction_remove(reaction, user):
-#   print("here")
-#   if (user.name != "MetaTrends Bot"):
-#     await reaction.message.channel.send('{} has removed {} from the message {}'.format(user.name, reaction.emoji, reaction.message.content))
-  # print("here")
-  # if (user.name != "MetaTrends Bot"):
-  #   if reaction.emoji == '⬅️' and reaction.message.content.startswith('The current top trending content:'):
-  #     print("left")
-  #     await reaction.message.edit(content=update_overview(reaction.message, False))
-  #   elif reaction.emoji == '➡️' and reaction.message.content.startswith('The current top trending content:'):
-  #     print("right")
-  #     await reaction.message.edit(content=update_overview(reaction.message, True))
-  # print("remove!!!")
-  # if (user.name != "MetaTrends Bot"):
-  #   await reaction.message.channel.send('{} has removed {} from the message {}'.format(user.name, reaction.emoji, reaction.message.content))
 
 keep_alive()
 client.run(os.getenv("TOKEN"))
