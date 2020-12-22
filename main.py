@@ -13,15 +13,18 @@ companies = ["Google", "Microsoft", "Discord", "Apple", "Tesla", "Uber", "Facebo
 
 elevatorpitch = ["Metatrends is an api-based content ranking and trend aggregation system.", "Please help us.", "Get your top trending content here!", "I'll intern for free."]
 
-
 def get_date():
-  # str = ""
   today = date.today()
-  now = datetime.now()
+  # now = datetime.now()
   return today.strftime("%B %d, %Y")
 
 def format_content(content):
-  return content["link"]
+  if content["type"] == "twitch":
+    return f"https://twitch.tv/{content['user_name']}"
+  elif content["type"] == "reddit":
+    return f"https://{content['link']}"
+  else:
+    return content["link"]
 
 
 def get_trending_list():
@@ -55,6 +58,15 @@ def put_lst_in_backticks(lst, start, end):
   newstr += "\n```"
   return newstr
 
+def get_help_msg():
+  msg = "My current available commands are:\n\n"
+  msg += "$$$help - get available commands\n"
+  msg += "$$$acquire - see what companies we are currently acquiring\n"
+  msg += "$$$elevator-pitch - get the MetaTrend's creator's elevator pitches\n"
+  msg += "$$$get - get an overview of today's top trending content\n"
+  msg += "$$$get [num] - get detailed content on that number in the overview list"
+  return msg
+
 #how you register an event
 @client.event
 async def on_ready():
@@ -64,10 +76,8 @@ async def on_ready():
 async def on_message(message):
   if message.author == client.user:
     return
-  
-  if message.content.startswith("$$$hello"):
-    await message.channel.send("hello!")
-
+  if message.content == "$$$help":
+    await message.channel.send(get_help_msg())
   elif message.content.startswith("$$$elevator-pitch"):
     await message.channel.send(random.choice(elevatorpitch))
 
@@ -84,24 +94,18 @@ async def on_message(message):
   elif message.content.startswith("$$$get"):
     num = int(message.content.split()[1]) - 1
     lst = get_trending_list()
-    # specificContent = filter_content.format_content(lst[num])
     specificContent = "```ini\n" + filter_content.format_content(lst[num]) + "```"
     msg = await message.channel.send(specificContent)
+    await message.channel.send(format_content(lst[num]))
     # await msg.add_reaction('🌐')
 
 def calculate_indices(lst, start, end, isForward):
   if isForward:
     start = end
-    if end + 15 > len(lst)-1:
-      end = len(lst)
-    else:
-      end += 15
+    end = len(lst) if end+15 > len(lst)-1 else end+15
   else:
     end = start
-    if start - 15 < 0:
-      start = 0
-    else:
-      start -= 15
+    start = 0 if start-15 < 0 else start-15 
   return start, end
 
 def update_overview(msg, isForward):
@@ -109,20 +113,14 @@ def update_overview(msg, isForward):
   start = int(msgLst[1].split(")")[0]) - 1
   end = int(msgLst[len(msgLst)-6].split(")")[0])
   lst = get_trending_list()
-  # print(start, end)
 
   if (start == 0 and not isForward) or (end == len(lst) and isForward):
     return msg.content
 
   newstart, newend = calculate_indices(lst, start, end, isForward)
-  # print(newstart, newend, len(lst))
   newstr = put_lst_in_backticks(get_trending_overview(), newstart, newend)
-  # print(newstr)
-  return 'The current top trending content:' + newstr
 
-@client.event
-async def on_reaction_remove(reaction, user):
-  print("REMOVED")
+  return 'The current top trending content:' + newstr
 
 @client.event
 async def on_reaction_add(reaction, user):
@@ -130,9 +128,9 @@ async def on_reaction_add(reaction, user):
     if reaction.emoji == '⬅️' and reaction.message.content.startswith('The current top trending content:'):
       await reaction.message.edit(content=update_overview(reaction.message, False))
       await reaction.message.remove_reaction(reaction.emoji, user)
+
     elif reaction.emoji == '➡️' and reaction.message.content.startswith('The current top trending content:'):
       await reaction.message.edit(content=update_overview(reaction.message, True))
-  
       await reaction.message.remove_reaction(reaction.emoji, user)
 
 
