@@ -6,16 +6,13 @@ import json
 from keep_alive import keep_alive
 import filter_content
 from datetime import date, datetime
-# from markyp_html import webpage
-# from markyp_highlightjs import js, themes, highlight
 import math
-# from replit import db
-
 
 client = discord.Client()
 companies = ["Google", "Microsoft", "Discord", "Apple", "Tesla", "Uber", "Facebook", "Oracle", "IBM", "Intel", "Adobe", "Amazon", "Lyftly"]
 
 elevatorpitch = ["Metatrends is an api-based content ranking and trend aggregation system.", "Please help us.", "Get your top trending content here!", "I'll intern for free."]
+
 
 def get_date():
   # str = ""
@@ -46,15 +43,14 @@ def get_trending_overview():
     lst.append(contentStr + "\t" + f"[{contentType.capitalize()}]")
   return lst
 
-def calculate_page_nums_left(lst, limit):
-  pass
+def calculate_page_nums_left(lst, end):
+  return math.ceil((len(lst)-end)/15);
 
-
-def put_lst_in_backticks(lst, limit):
+def put_lst_in_backticks(lst, start, end):
   newstr = "```autohotkey\n"
-  for i in range(len(lst[0:limit])):
+  for i in range(start, end):
     newstr += f"{str(i+1)}) {lst[i]}\n"
-  newstr += f"\n\t{math.ceil((len(lst)-limit)/limit)} more page(s)"
+  newstr += f"\n\t{calculate_page_nums_left(lst, end)} more page(s)"
   newstr += "\n\nSee the full list of today's top trending content at: https://metatrends.live"
   newstr += "\n```"
   return newstr
@@ -81,43 +77,64 @@ async def on_message(message):
   elif message.content == "$$$get":
     lst = get_trending_overview()
     limit = 15
-    msg = await message.channel.send(f"The current top trending content: " + put_lst_in_backticks(lst, limit))
+    msg = await message.channel.send(f"The current top trending content: " + put_lst_in_backticks(lst, 0, limit))
     await msg.add_reaction('⬅️')
     await msg.add_reaction('➡️')
 
   elif message.content.startswith("$$$get"):
     num = int(message.content.split()[1]) - 1
     lst = get_trending_list()
+    # specificContent = filter_content.format_content(lst[num])
     specificContent = "```ini\n" + filter_content.format_content(lst[num]) + "```"
-    msg = await message.channel.send(specificContent)
+    msg = await message.channel.send(embed=specificContent)
     await msg.add_reaction('🌐')
 
+def calculate_indices(lst, start, end, isForward):
+  if isForward:
+    start = end
+    if end + 15 > len(lst)-1:
+      end = len(lst)
+    else:
+      end += 15
+  else:
+    end = start
+    if start - 15 < 0:
+      start = 0
+    else:
+      start -= 15
+  return start, end
 
-def update_overview(msg):
-  print(msg.content)
+def update_overview(msg, isForward):
   msgLst = msg.content.split("\n")
-  start = int(msgLst[1].split(")")[0])
+  start = int(msgLst[1].split(")")[0]) - 1
   end = int(msgLst[len(msgLst)-6].split(")")[0])
-  print(start, end)
-  return "changing! woo!"
+  lst = get_trending_list()
+  # print(start, end)
+
+  if (start == 0 and not isForward) or (end == len(lst) and isForward):
+    return msg.content
+
+  newstart, newend = calculate_indices(lst, start, end, isForward)
+  # print(newstart, newend, len(lst))
+  newstr = put_lst_in_backticks(get_trending_overview(), newstart, newend)
+  # print(newstr)
+  return 'The current top trending content:' + newstr
+
+@client.event
+async def on_reaction_remove(reaction, user):
+  print("REMOVED")
 
 @client.event
 async def on_reaction_add(reaction, user):
   if (user.name != "MetaTrends Bot"):
     if reaction.emoji == '⬅️' and reaction.message.content.startswith('The current top trending content:'):
-      # await reaction.message.channel.send("go back!")
-      # reaction.message.content
-      # reaction.message.content = update_overview(reaction.message)
-      await reaction.message.edit(content=update_overview(reaction.message))
+      await reaction.message.edit(content=update_overview(reaction.message, False))
+      await reaction.message.remove_reaction(reaction.emoji, user)
     elif reaction.emoji == '➡️' and reaction.message.content.startswith('The current top trending content:'):
-      await reaction.message.channel.send("onward!")
-    # await reaction.message.channel.send('{} has added {} to the message {}'.format(user.name, reaction.emoji, reaction.message.content))
+      await reaction.message.edit(content=update_overview(reaction.message, True))
+  
+      await reaction.message.remove_reaction(reaction.emoji, user)
 
-
-@client.event
-async def on_reaction_remove(reaction, user):
-  if (user.name != "MetaTrends Bot"):
-    await reaction.message.channel.send('{} has removed {} from the message {}'.format(user.name, reaction.emoji, reaction.message.content))
 
 keep_alive()
 client.run(os.getenv("TOKEN"))

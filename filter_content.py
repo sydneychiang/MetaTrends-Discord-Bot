@@ -1,5 +1,12 @@
+import discord
 
 def format_tweet(tweet):
+  # embedVar = discord.Embed(title="Title", description="Desc", color=0x00ff00)
+  # embedVar.add_field(name="Field1", value="hi", inline=False)
+  # embedVar.add_field(name="Field2", value="hi2", inline=False)
+  # return embedVar
+  # await message.channel.send(embed=embedVar)
+
   return f"[{tweet['type'].capitalize()}] {tweet['user_name']} (@{tweet['screen_name']})\n{tweet['text']}"
 
 def format_tv_movie(tvMovie):
@@ -28,6 +35,7 @@ def format_spotify(spotify):
 def format_content(content):
   newstr = ""
   if content["type"] == "tweet":
+    # return format_tweet()
     newstr += format_tweet(content)
   elif content["type"] == "tv" or content["type"] == "movie":
     newstr += format_tv_movie(content)
