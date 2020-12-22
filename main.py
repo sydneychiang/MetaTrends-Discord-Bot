@@ -86,8 +86,8 @@ async def on_message(message):
     lst = get_trending_list()
     # specificContent = filter_content.format_content(lst[num])
     specificContent = "```ini\n" + filter_content.format_content(lst[num]) + "```"
-    msg = await message.channel.send(embed=specificContent)
-    await msg.add_reaction('🌐')
+    msg = await message.channel.send(specificContent)
+    # await msg.add_reaction('🌐')
 
 def calculate_indices(lst, start, end, isForward):
   if isForward:
